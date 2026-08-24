@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -15,12 +16,15 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: "8.9"
 
       - name: Create Android project
         shell: bash
@@ -44,6 +48,7 @@ jobs:
 
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
               repositories {
                   google()
                   mavenCentral()
@@ -51,6 +56,7 @@ jobs:
           }
 
           rootProject.name = "JaapCounter"
+
           include(":app")
           EOF
 
@@ -79,8 +85,10 @@ jobs:
 
               defaultConfig {
                   applicationId = "com.example.jaapcounter"
+
                   minSdk = 23
                   targetSdk = 35
+
                   versionCode = 1
                   versionName = "1.0"
               }
@@ -94,6 +102,7 @@ jobs:
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
               <uses-permission android:name="android.permission.VIBRATE" />
@@ -106,8 +115,8 @@ jobs:
 
                   <activity
                       android:name=".MainActivity"
-                      android:screenOrientation="portrait"
-                      android:exported="true">
+                      android:exported="true"
+                      android:screenOrientation="portrait">
 
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -123,14 +132,21 @@ jobs:
 
           cat > app/src/main/res/values/styles.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+
           <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+
+              <style
+                  name="AppTheme"
+                  parent="Theme.AppCompat.Light.NoActionBar">
+
                   <item name="android:fontFamily">sans</item>
                   <item name="android:windowLightStatusBar">true</item>
                   <item name="android:statusBarColor">#FFFFFF</item>
                   <item name="android:navigationBarColor">#FFFFFF</item>
                   <item name="android:colorAccent">#5B3A29</item>
+
               </style>
+
           </resources>
           EOF
 
@@ -157,62 +173,122 @@ jobs:
               private var count = 0L
 
               private val preferences by lazy {
-                  getSharedPreferences("jaap_counter", MODE_PRIVATE)
+                  getSharedPreferences(
+                      "jaap_counter",
+                      MODE_PRIVATE
+                  )
               }
 
-              override fun onCreate(savedInstanceState: Bundle?) {
+              override fun onCreate(
+                  savedInstanceState: Bundle?
+              ) {
                   super.onCreate(savedInstanceState)
 
-                  count = preferences.getLong("count", 0L)
+                  count = preferences.getLong(
+                      "count",
+                      0L
+                  )
 
                   createInterface()
+
                   updateDisplay()
               }
 
               private fun createInterface() {
 
                   val root = LinearLayout(this).apply {
-                      orientation = LinearLayout.VERTICAL
-                      gravity = Gravity.CENTER
-                      setPadding(dp(24), dp(24), dp(24), dp(24))
+
+                      orientation =
+                          LinearLayout.VERTICAL
+
+                      gravity =
+                          Gravity.CENTER
+
+                      setPadding(
+                          dp(24),
+                          dp(24),
+                          dp(24),
+                          dp(24)
+                      )
                   }
 
-                  val title = TextView(this).apply {
-                      text = "JAAP COUNTER"
-                      textSize = 24f
-                      gravity = Gravity.CENTER
-                  }
+                  val title =
+                      TextView(this).apply {
 
-                  val instruction = TextView(this).apply {
-                      text = "Press a volume button to count"
-                      textSize = 16f
-                      gravity = Gravity.CENTER
-                      setPadding(0, dp(16), 0, dp(20))
-                  }
+                          text =
+                              "JAAP COUNTER"
 
-                  countText = TextView(this).apply {
-                      textSize = 64f
-                      gravity = Gravity.CENTER
-                      setPadding(0, dp(10), 0, dp(30))
-                  }
+                          textSize =
+                              24f
 
-                  val countButton = Button(this).apply {
-                      text = "COUNT"
-                      textSize = 18f
-
-                      setOnClickListener {
-                          increment()
+                          gravity =
+                              Gravity.CENTER
                       }
-                  }
 
-                  val resetButton = Button(this).apply {
-                      text = "RESET"
-                      textSize = 16f
+                  val instruction =
+                      TextView(this).apply {
 
-                      setOnClickListener {
-                          reset()
+                          text =
+                              "Press a volume button to count"
+
+                          textSize =
+                              16f
+
+                          gravity =
+                              Gravity.CENTER
+
+                          setPadding(
+                              0,
+                              dp(16),
+                              0,
+                              dp(20)
+                          )
                       }
-                  }
+
+                  countText =
+                      TextView(this).apply {
+
+                          textSize =
+                              64f
+
+                          gravity =
+                              Gravity.CENTER
+
+                          setPadding(
+                              0,
+                              dp(10),
+                              0,
+                              dp(30)
+                          )
+                      }
+
+                  val countButton =
+                      Button(this).apply {
+
+                          text =
+                              "COUNT"
+
+                          textSize =
+                              18f
+
+                          setOnClickListener {
+                              increment()
+                          }
+                      }
+
+                  val resetButton =
+                      Button(this).apply {
+
+                          text =
+                              "RESET"
+
+                          textSize =
+                              16f
+
+                          setOnClickListener {
+                              reset()
+                          }
+                      }
 
                   root.addView(
                       title,
@@ -252,32 +328,42 @@ jobs:
                           dp(180),
                           dp(55)
                       ).apply {
-                          topMargin = dp(12)
+
+                          topMargin =
+                              dp(12)
                       }
                   )
 
                   setContentView(root)
               }
 
-              override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+              override fun dispatchKeyEvent(
+                  event: KeyEvent
+              ): Boolean {
 
                   val volumeButton =
-                      event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-                      event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+                      event.keyCode ==
+                          KeyEvent.KEYCODE_VOLUME_UP ||
+                      event.keyCode ==
+                          KeyEvent.KEYCODE_VOLUME_DOWN
 
                   if (volumeButton) {
 
                       if (
-                          event.action == KeyEvent.ACTION_DOWN &&
+                          event.action ==
+                              KeyEvent.ACTION_DOWN &&
                           event.repeatCount == 0
                       ) {
+
                           increment()
                       }
 
                       return true
                   }
 
-                  return super.dispatchKeyEvent(event)
+                  return super.dispatchKeyEvent(
+                      event
+                  )
               }
 
               private fun increment() {
@@ -285,10 +371,14 @@ jobs:
                   count++
 
                   preferences.edit()
-                      .putLong("count", count)
+                      .putLong(
+                          "count",
+                          count
+                      )
                       .apply()
 
                   updateDisplay()
+
                   vibrate()
               }
 
@@ -297,37 +387,56 @@ jobs:
                   count = 0L
 
                   preferences.edit()
-                      .putLong("count", count)
+                      .putLong(
+                          "count",
+                          count
+                      )
                       .apply()
 
                   updateDisplay()
+
                   vibrate()
               }
 
               private fun updateDisplay() {
-                  countText.text = count.toString()
+
+                  countText.text =
+                      count.toString()
               }
 
               private fun vibrate() {
 
                   val vibrator: Vibrator =
-                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+
+                      if (
+                          Build.VERSION.SDK_INT >=
+                          Build.VERSION_CODES.S
+                      ) {
 
                           val manager =
-                              getSystemService(Context.VIBRATOR_MANAGER_SERVICE)
-                                      as VibratorManager
+                              getSystemService(
+                                  Context.VIBRATOR_MANAGER_SERVICE
+                              ) as VibratorManager
 
                           manager.defaultVibrator
 
                       } else {
 
                           @Suppress("DEPRECATION")
-                          getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+                          getSystemService(
+                              Context.VIBRATOR_SERVICE
+                          ) as Vibrator
                       }
 
-                  if (!vibrator.hasVibrator()) return
+                  if (!vibrator.hasVibrator()) {
+                      return
+                  }
 
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                  if (
+                      Build.VERSION.SDK_INT >=
+                      Build.VERSION_CODES.O
+                  ) {
 
                       vibrator.vibrate(
                           VibrationEffect.createOneShot(
@@ -339,21 +448,42 @@ jobs:
                   } else {
 
                       @Suppress("DEPRECATION")
-                      vibrator.vibrate(20L)
+
+                      vibrator.vibrate(
+                          20L
+                      )
                   }
               }
 
-              private fun dp(value: Int): Int {
-                  return (value * resources.displayMetrics.density).toInt()
+              private fun dp(
+                  value: Int
+              ): Int {
+
+                  return (
+                      value *
+                      resources.displayMetrics.density
+                  ).toInt()
               }
           }
           EOF
 
-      - name: Build APK
+      - name: Check environment
         run: |
-          gradle assembleDebug --no-daemon
+          java -version
+          gradle --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la
+          ls -la app
+
+      - name: Build Debug APK
+        run: |
+          gradle assembleDebug \
+            --no-daemon \
+            --stacktrace \
+            --info
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Jaap-Counter-APK
