@@ -1,0 +1,361 @@
+name: Build Jaap Counter APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Create Android project
+        shell: bash
+        run: |
+          set -e
+
+          rm -rf app
+          rm -f build.gradle.kts settings.gradle.kts gradle.properties
+
+          mkdir -p app/src/main/java/com/example/jaapcounter
+          mkdir -p app/src/main/res/values
+
+          cat > settings.gradle.kts <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "JaapCounter"
+          include(":app")
+          EOF
+
+          cat > build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application") version "8.7.3" apply false
+              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+          }
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          kotlin.code.style=official
+          EOF
+
+          cat > app/build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+
+          android {
+              namespace = "com.example.jaapcounter"
+              compileSdk = 35
+
+              defaultConfig {
+                  applicationId = "com.example.jaapcounter"
+                  minSdk = 23
+                  targetSdk = 35
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+          }
+
+          dependencies {
+              implementation("androidx.core:core-ktx:1.15.0")
+              implementation("androidx.appcompat:appcompat:1.7.0")
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.VIBRATE" />
+
+              <application
+                  android:allowBackup="true"
+                  android:label="Jaap Counter"
+                  android:supportsRtl="true"
+                  android:theme="@style/AppTheme">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:screenOrientation="portrait"
+                      android:exported="true">
+
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+
+                  </activity>
+
+              </application>
+
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:windowLightStatusBar">true</item>
+                  <item name="android:statusBarColor">#FFFFFF</item>
+                  <item name="android:navigationBarColor">#FFFFFF</item>
+                  <item name="android:colorAccent">#5B3A29</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/java/com/example/jaapcounter/MainActivity.kt <<'EOF'
+          package com.example.jaapcounter
+
+          import android.content.Context
+          import android.os.Build
+          import android.os.Bundle
+          import android.os.VibrationEffect
+          import android.os.Vibrator
+          import android.os.VibratorManager
+          import android.view.Gravity
+          import android.view.KeyEvent
+          import android.widget.Button
+          import android.widget.LinearLayout
+          import android.widget.TextView
+          import androidx.appcompat.app.AppCompatActivity
+
+          class MainActivity : AppCompatActivity() {
+
+              private lateinit var countText: TextView
+
+              private var count = 0L
+
+              private val preferences by lazy {
+                  getSharedPreferences("jaap_counter", MODE_PRIVATE)
+              }
+
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+
+                  count = preferences.getLong("count", 0L)
+
+                  createInterface()
+                  updateDisplay()
+              }
+
+              private fun createInterface() {
+
+                  val root = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                      gravity = Gravity.CENTER
+                      setPadding(dp(24), dp(24), dp(24), dp(24))
+                  }
+
+                  val title = TextView(this).apply {
+                      text = "JAAP COUNTER"
+                      textSize = 24f
+                      gravity = Gravity.CENTER
+                  }
+
+                  val instruction = TextView(this).apply {
+                      text = "Press a volume button to count"
+                      textSize = 16f
+                      gravity = Gravity.CENTER
+                      setPadding(0, dp(16), 0, dp(20))
+                  }
+
+                  countText = TextView(this).apply {
+                      textSize = 64f
+                      gravity = Gravity.CENTER
+                      setPadding(0, dp(10), 0, dp(30))
+                  }
+
+                  val countButton = Button(this).apply {
+                      text = "COUNT"
+                      textSize = 18f
+
+                      setOnClickListener {
+                          increment()
+                      }
+                  }
+
+                  val resetButton = Button(this).apply {
+                      text = "RESET"
+                      textSize = 16f
+
+                      setOnClickListener {
+                          reset()
+                      }
+                  }
+
+                  root.addView(
+                      title,
+                      LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT,
+                          LinearLayout.LayoutParams.WRAP_CONTENT
+                      )
+                  )
+
+                  root.addView(
+                      instruction,
+                      LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT,
+                          LinearLayout.LayoutParams.WRAP_CONTENT
+                      )
+                  )
+
+                  root.addView(
+                      countText,
+                      LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT,
+                          LinearLayout.LayoutParams.WRAP_CONTENT
+                      )
+                  )
+
+                  root.addView(
+                      countButton,
+                      LinearLayout.LayoutParams(
+                          dp(220),
+                          dp(60)
+                      )
+                  )
+
+                  root.addView(
+                      resetButton,
+                      LinearLayout.LayoutParams(
+                          dp(180),
+                          dp(55)
+                      ).apply {
+                          topMargin = dp(12)
+                      }
+                  )
+
+                  setContentView(root)
+              }
+
+              override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+
+                  val volumeButton =
+                      event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+                      event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+
+                  if (volumeButton) {
+
+                      if (
+                          event.action == KeyEvent.ACTION_DOWN &&
+                          event.repeatCount == 0
+                      ) {
+                          increment()
+                      }
+
+                      return true
+                  }
+
+                  return super.dispatchKeyEvent(event)
+              }
+
+              private fun increment() {
+
+                  count++
+
+                  preferences.edit()
+                      .putLong("count", count)
+                      .apply()
+
+                  updateDisplay()
+                  vibrate()
+              }
+
+              private fun reset() {
+
+                  count = 0L
+
+                  preferences.edit()
+                      .putLong("count", count)
+                      .apply()
+
+                  updateDisplay()
+                  vibrate()
+              }
+
+              private fun updateDisplay() {
+                  countText.text = count.toString()
+              }
+
+              private fun vibrate() {
+
+                  val vibrator: Vibrator =
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+
+                          val manager =
+                              getSystemService(Context.VIBRATOR_MANAGER_SERVICE)
+                                      as VibratorManager
+
+                          manager.defaultVibrator
+
+                      } else {
+
+                          @Suppress("DEPRECATION")
+                          getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                      }
+
+                  if (!vibrator.hasVibrator()) return
+
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+                      vibrator.vibrate(
+                          VibrationEffect.createOneShot(
+                              20L,
+                              VibrationEffect.DEFAULT_AMPLITUDE
+                          )
+                      )
+
+                  } else {
+
+                      @Suppress("DEPRECATION")
+                      vibrator.vibrate(20L)
+                  }
+              }
+
+              private fun dp(value: Int): Int {
+                  return (value * resources.displayMetrics.density).toInt()
+              }
+          }
+          EOF
+
+      - name: Build APK
+        run: |
+          gradle assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jaap-Counter-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
