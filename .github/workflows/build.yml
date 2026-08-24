@@ -9,8 +9,17 @@ jobs:
 
     steps:
 
+      # --------------------------------------------------
+      # 1. Checkout repository
+      # --------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
+
+      # --------------------------------------------------
+      # 2. Java 17
+      # --------------------------------------------------
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -18,24 +27,48 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+
+      # --------------------------------------------------
+      # 3. Android SDK
+      # --------------------------------------------------
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+
+
+      # --------------------------------------------------
+      # 4. Gradle 8.9
+      # --------------------------------------------------
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
 
+
+      # --------------------------------------------------
+      # 5. Create Android project
+      # --------------------------------------------------
+
       - name: Create Android project
         shell: bash
         run: |
           set -e
 
+          echo "Creating Jaap Counter Android project..."
+
           rm -rf app
-          rm -f build.gradle.kts settings.gradle.kts gradle.properties
+          rm -f build.gradle.kts
+          rm -f settings.gradle.kts
+          rm -f gradle.properties
 
           mkdir -p app/src/main/java/com/example/jaapcounter
           mkdir -p app/src/main/res/values
+
+
+          # ------------------------------------------------
+          # settings.gradle.kts
+          # ------------------------------------------------
 
           cat > settings.gradle.kts <<'EOF'
           pluginManagement {
@@ -47,7 +80,9 @@ jobs:
           }
 
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositoriesMode.set(
+                  RepositoriesMode.FAIL_ON_PROJECT_REPOS
+              )
 
               repositories {
                   google()
@@ -60,6 +95,11 @@ jobs:
           include(":app")
           EOF
 
+
+          # ------------------------------------------------
+          # Root build.gradle.kts
+          # ------------------------------------------------
+
           cat > build.gradle.kts <<'EOF'
           plugins {
               id("com.android.application") version "8.7.3" apply false
@@ -67,11 +107,21 @@ jobs:
           }
           EOF
 
+
+          # ------------------------------------------------
+          # gradle.properties
+          # ------------------------------------------------
+
           cat > gradle.properties <<'EOF'
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           android.useAndroidX=true
           kotlin.code.style=official
           EOF
+
+
+          # ------------------------------------------------
+          # app/build.gradle.kts
+          # ------------------------------------------------
 
           cat > app/build.gradle.kts <<'EOF'
           plugins {
@@ -81,6 +131,7 @@ jobs:
 
           android {
               namespace = "com.example.jaapcounter"
+
               compileSdk = 35
 
               defaultConfig {
@@ -92,6 +143,15 @@ jobs:
                   versionCode = 1
                   versionName = "1.0"
               }
+
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+
+          kotlin {
+              jvmToolchain(17)
           }
 
           dependencies {
@@ -100,12 +160,18 @@ jobs:
           }
           EOF
 
+
+          # ------------------------------------------------
+          # AndroidManifest.xml
+          # ------------------------------------------------
+
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
 
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission android:name="android.permission.VIBRATE" />
+              <uses-permission
+                  android:name="android.permission.VIBRATE" />
 
               <application
                   android:allowBackup="true"
@@ -119,8 +185,13 @@ jobs:
                       android:screenOrientation="portrait">
 
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+
+                          <action
+                              android:name="android.intent.action.MAIN" />
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER" />
+
                       </intent-filter>
 
                   </activity>
@@ -129,6 +200,11 @@ jobs:
 
           </manifest>
           EOF
+
+
+          # ------------------------------------------------
+          # styles.xml
+          # ------------------------------------------------
 
           cat > app/src/main/res/values/styles.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -140,15 +216,32 @@ jobs:
                   parent="Theme.AppCompat.Light.NoActionBar">
 
                   <item name="android:fontFamily">sans</item>
-                  <item name="android:windowLightStatusBar">true</item>
-                  <item name="android:statusBarColor">#FFFFFF</item>
-                  <item name="android:navigationBarColor">#FFFFFF</item>
-                  <item name="android:colorAccent">#5B3A29</item>
+
+                  <item name="android:windowLightStatusBar">
+                      true
+                  </item>
+
+                  <item name="android:statusBarColor">
+                      #FFFFFF
+                  </item>
+
+                  <item name="android:navigationBarColor">
+                      #FFFFFF
+                  </item>
+
+                  <item name="android:colorAccent">
+                      #5B3A29
+                  </item>
 
               </style>
 
           </resources>
           EOF
+
+
+          # ------------------------------------------------
+          # MainActivity.kt
+          # ------------------------------------------------
 
           cat > app/src/main/java/com/example/jaapcounter/MainActivity.kt <<'EOF'
           package com.example.jaapcounter
@@ -190,7 +283,6 @@ jobs:
                   )
 
                   createInterface()
-
                   updateDisplay()
               }
 
@@ -212,18 +304,18 @@ jobs:
                       )
                   }
 
+
                   val title =
                       TextView(this).apply {
 
-                          text =
-                              "JAAP COUNTER"
+                          text = "JAAP COUNTER"
 
-                          textSize =
-                              24f
+                          textSize = 24f
 
                           gravity =
                               Gravity.CENTER
                       }
+
 
                   val instruction =
                       TextView(this).apply {
@@ -231,8 +323,7 @@ jobs:
                           text =
                               "Press a volume button to count"
 
-                          textSize =
-                              16f
+                          textSize = 16f
 
                           gravity =
                               Gravity.CENTER
@@ -245,11 +336,11 @@ jobs:
                           )
                       }
 
+
                   countText =
                       TextView(this).apply {
 
-                          textSize =
-                              64f
+                          textSize = 64f
 
                           gravity =
                               Gravity.CENTER
@@ -262,33 +353,32 @@ jobs:
                           )
                       }
 
+
                   val countButton =
                       Button(this).apply {
 
-                          text =
-                              "COUNT"
+                          text = "COUNT"
 
-                          textSize =
-                              18f
+                          textSize = 18f
 
                           setOnClickListener {
                               increment()
                           }
                       }
 
+
                   val resetButton =
                       Button(this).apply {
 
-                          text =
-                              "RESET"
+                          text = "RESET"
 
-                          textSize =
-                              16f
+                          textSize = 16f
 
                           setOnClickListener {
                               reset()
                           }
                       }
+
 
                   root.addView(
                       title,
@@ -298,6 +388,7 @@ jobs:
                       )
                   )
 
+
                   root.addView(
                       instruction,
                       LinearLayout.LayoutParams(
@@ -305,6 +396,7 @@ jobs:
                           LinearLayout.LayoutParams.WRAP_CONTENT
                       )
                   )
+
 
                   root.addView(
                       countText,
@@ -314,6 +406,7 @@ jobs:
                       )
                   )
 
+
                   root.addView(
                       countButton,
                       LinearLayout.LayoutParams(
@@ -322,6 +415,7 @@ jobs:
                       )
                   )
 
+
                   root.addView(
                       resetButton,
                       LinearLayout.LayoutParams(
@@ -329,13 +423,14 @@ jobs:
                           dp(55)
                       ).apply {
 
-                          topMargin =
-                              dp(12)
+                          topMargin = dp(12)
                       }
                   )
 
+
                   setContentView(root)
               }
+
 
               override fun dispatchKeyEvent(
                   event: KeyEvent
@@ -354,17 +449,15 @@ jobs:
                               KeyEvent.ACTION_DOWN &&
                           event.repeatCount == 0
                       ) {
-
                           increment()
                       }
 
                       return true
                   }
 
-                  return super.dispatchKeyEvent(
-                      event
-                  )
+                  return super.dispatchKeyEvent(event)
               }
+
 
               private fun increment() {
 
@@ -378,9 +471,9 @@ jobs:
                       .apply()
 
                   updateDisplay()
-
                   vibrate()
               }
+
 
               private fun reset() {
 
@@ -394,15 +487,16 @@ jobs:
                       .apply()
 
                   updateDisplay()
-
                   vibrate()
               }
+
 
               private fun updateDisplay() {
 
                   countText.text =
                       count.toString()
               }
+
 
               private fun vibrate() {
 
@@ -429,9 +523,11 @@ jobs:
                           ) as Vibrator
                       }
 
+
                   if (!vibrator.hasVibrator()) {
                       return
                   }
+
 
                   if (
                       Build.VERSION.SDK_INT >=
@@ -449,11 +545,10 @@ jobs:
 
                       @Suppress("DEPRECATION")
 
-                      vibrator.vibrate(
-                          20L
-                      )
+                      vibrator.vibrate(20L)
                   }
               }
+
 
               private fun dp(
                   value: Int
@@ -461,29 +556,79 @@ jobs:
 
                   return (
                       value *
-                      resources.displayMetrics.density
-                  ).toInt()
+                          resources.displayMetrics.density
+                      ).toInt()
               }
           }
           EOF
 
-      - name: Check environment
+          echo ""
+          echo "Android project created successfully."
+          echo ""
+
+          echo "Project structure:"
+          find . -maxdepth 5 -type f | sort
+
+
+      # --------------------------------------------------
+      # 6. Verify Java / Gradle environment
+      # --------------------------------------------------
+
+      - name: Check build environment
         run: |
+          echo "========== JAVA =========="
           java -version
+
+          echo ""
+          echo "========== GRADLE =========="
           gradle --version
+
+          echo ""
+          echo "========== ANDROID =========="
           echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+
+          echo ""
+          echo "========== PROJECT =========="
           ls -la
           ls -la app
+          ls -la app/src/main
+
+
+      # --------------------------------------------------
+      # 7. Build APK
+      # --------------------------------------------------
 
       - name: Build Debug APK
         run: |
           gradle assembleDebug \
             --no-daemon \
-            --stacktrace \
-            --info
+            --stacktrace
+
+
+      # --------------------------------------------------
+      # 8. Verify APK
+      # --------------------------------------------------
+
+      - name: Verify APK
+        run: |
+          echo "Checking APK..."
+
+          if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "ERROR: APK was not created."
+            exit 1
+          fi
+
+          echo ""
+          echo "APK successfully created."
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+
+
+      # --------------------------------------------------
+      # 9. Upload APK
+      # --------------------------------------------------
 
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Jaap-Counter-APK
